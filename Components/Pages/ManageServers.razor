@@ -1,0 +1,121 @@
+﻿@page "/manage"
+@using BlazorSSRApp.Data
+@using BlazorSSRApp.Models
+@inject NavigationManager Navigation
+
+<h2>Servers</h2>
+<hr />
+
+@{
+    var allCities = new[] { "Toronto", "Montreal", "Ottawa", "Calgary", "Halifax" };
+}
+
+<!-- 1) City cards -->
+<div class="d-flex flex-wrap mb-3">
+    @foreach (var city in allCities)
+    {
+        <CityCardComponent CityName="@city"
+                           ServerCount="@CountOnlineByCity(city)"
+                           OnClick="FilterByCity" />
+    }
+</div>
+
+<!-- 2) Search bar -->
+<div class="input-group mb-3 w-25">
+    <input class="form-control"
+           placeholder="Search Servers"
+           @bind="searchInput" />
+    <button class="btn btn-outline-secondary"
+            @onclick="ApplySearch">
+        Search
+    </button>
+</div>
+
+<!-- 3) Server table -->
+<table class="table table-bordered table-hover table-striped">
+    <thead class="table-primary">
+        <tr>
+            <th>Name</th>
+            <th>City</th>
+            <th>Status</th>
+            <th>People Online</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var s in Filtered)
+        {
+            <tr class="align-middle">
+                <td>@s.Name</td>
+                <td>@s.City</td>
+                <td style="color:@(s.IsOnline ? "green" : "red")">
+                    @(s.IsOnline ? "online" : "offline")
+                </td>
+                <td>@(s.IsOnline? s.PeopleOnline.ToString():"N/A")</td>
+                <td>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-danger"
+                                @onclick="() => Delete(s)">
+                            Delete
+                        </button>
+                        <NavLink class="btn btn-sm btn-outline-primary"
+                                 href="@($"/edit-server/{ServerStore.Servers.IndexOf(s)}?search={Uri.EscapeDataString(filter)}")">
+                            Edit
+                        </NavLink>
+                        <button class="btn btn-sm @(s.IsOnline ? "btn-warning" : "btn-success")"
+                                @onclick="() => Toggle(s)">
+                            @(s.IsOnline ? "Turn Off" : "Turn On")
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<NavLink class="btn btn-primary mt-3"
+         href="@($"/add-server?search={Uri.EscapeDataString(filter)}")">
+    Add Server
+</NavLink>
+
+
+@code {
+    private string searchInput = "";
+    private string filter = "";
+
+    protected override void OnInitialized()
+    {
+        var q = new Uri(Navigation.Uri).Query;
+        if (!string.IsNullOrEmpty(q) && q.StartsWith("?"))
+        {
+            foreach (var part in q.Substring(1).Split('&'))
+            {
+                var kv = part.Split('=', 2);
+                if (kv[0] == "search")
+                {
+                    filter = Uri.UnescapeDataString(kv[1]);
+                    searchInput = filter;
+                }
+            }
+        }
+    }
+
+    void ApplySearch() => filter = searchInput;
+    void FilterByCity(string city) { searchInput = city; filter = city; }
+
+    IEnumerable<Server> Filtered => ServerStore.Servers.Where(s =>
+      string.IsNullOrWhiteSpace(filter)
+      || s.Name.Contains(filter, StringComparison.OrdinalIgnoreCase)
+      || s.City.Contains(filter, StringComparison.OrdinalIgnoreCase)
+    );
+
+    void Delete(Server s) => ServerStore.Servers.Remove(s);
+    void Toggle(Server s)
+    {
+        s.IsOnline = !s.IsOnline;
+        if (!s.IsOnline) s.PeopleOnline = 0;
+    }
+
+    int CountOnlineByCity(string city) =>
+      ServerStore.Servers.Count(s => s.City == city && s.IsOnline);
+}

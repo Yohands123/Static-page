@@ -1,0 +1,9 @@
+wwwroot\app.css
+wwwroot\bootstrap\bootstrap.min.css
+wwwroot\bootstrap\bootstrap.min.css.map
+wwwroot\favicon.png
+wwwroot\Images\Calgary.png
+wwwroot\Images\Halifax.png
+wwwroot\Images\montreal.png
+wwwroot\Images\Ottawa.png
+wwwroot\Images\toronto.png

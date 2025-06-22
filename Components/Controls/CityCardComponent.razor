@@ -1,0 +1,22 @@
+﻿@namespace BlazorSSRApp.Components.Controls
+@using Microsoft.AspNetCore.Components
+
+<div class="card text-center mx-2" style="width:150px; cursor:pointer;"
+     @onclick="() => OnClick.InvokeAsync(CityName)">
+    <img src="images/@(CityName.ToLower()).png"
+         alt="@CityName"
+         class="card-img-top mb-2"
+         style="height:100px; object-fit:contain;
+              border:2px solid #ddd; padding:4px;
+              background-color:white;" />
+    <div class="card-body">
+        <h6>@CityName</h6>
+        <button class="btn btn-primary">@ServerCount</button>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string CityName { get; set; } = string.Empty;
+    [Parameter] public int ServerCount { get; set; }
+    [Parameter] public EventCallback<string> OnClick { get; set; }
+}

@@ -1,0 +1,83 @@
+﻿@page "/add-server"
+@using BlazorSSRApp.Data
+@using BlazorSSRApp.Models
+@using Microsoft.AspNetCore.Components.Forms
+@inject NavigationManager Navigation
+
+<h3>Add New Server</h3>
+
+<EditForm Model="newServer"
+          OnValidSubmit="HandleValidSubmit"
+          FormName="AddServerForm">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="card p-4 w-50">
+        <div class="mb-3">
+            <label for="Name" class="form-label">Server Name</label>
+            <InputText id="Name"
+                       class="form-control"
+                       @bind-Value="newServer.Name" />
+            <ValidationMessage For="@(() => newServer.Name)" />
+        </div>
+
+        <div class="mb-3">
+            <label for="City" class="form-label">City</label>
+            <InputSelect id="City"
+                         class="form-control"
+                         @bind-Value="newServer.City">
+                <option value="">-- select --</option>
+                @foreach (var c in Cities)
+                {
+                    <option value="@c">@c</option>
+                }
+            </InputSelect>
+            <ValidationMessage For="@(() => newServer.City)" />
+        </div>
+
+        <div class="d-flex">
+            <button type="submit" class="btn btn-success me-2">Add Server</button>
+            <button type="button"
+                    class="btn btn-secondary"
+                    @onclick="Cancel">
+                Cancel
+            </button>
+        </div>
+    </div>
+</EditForm>
+
+@code {
+    [Parameter, SupplyParameterFromQuery(Name = "search")]
+    public string? Search { get; set; }
+
+    [SupplyParameterFromForm]
+    private Server newServer { get; set; } = new();
+
+    private static readonly List<string> Cities =
+      new() { "Toronto", "Montreal", "Ottawa", "Calgary", "Halifax" };
+
+    private bool _redirect;
+    private string _to = "/manage";
+
+    void HandleValidSubmit()
+    {
+        newServer.IsOnline = false;
+        newServer.PeopleOnline = 0;
+        ServerStore.Servers.Add(newServer);
+
+        _to = $"/manage?search={Uri.EscapeDataString(Search ?? "")}";
+        _redirect = true;
+    }
+
+    void Cancel() =>
+      Navigation.NavigateTo($"/manage?search={Uri.EscapeDataString(Search ?? "")}", true);
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (_redirect)
+        {
+            _redirect = false;
+            Navigation.NavigateTo(_to, true);
+        }
+    }
+}
