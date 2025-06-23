@@ -1,51 +1,42 @@
-﻿@page "/edit-server/{Index:int}"
+@page "/edit-server/{id:int}"
 @using BlazorSSRApp.Data
 @using BlazorSSRApp.Models
 @using Microsoft.AspNetCore.Components.Forms
-@inject NavigationManager Nav
+@inject NavigationManager Navigation
 
 <h3>Edit Server</h3>
 
-@if (original is null)
+@if (server is null)
 {
     <div class="alert alert-danger">Server not found.</div>
 }
 else
 {
-    <EditForm Model="edit"
-              OnValidSubmit="HandleValidSubmit"
+    <EditForm Model="server"
+              OnValidSubmit="Save"
               FormName="EditServerForm">
         <DataAnnotationsValidator />
         <ValidationSummary />
 
+        <InputNumber @bind-Value="server.Id" hidden></InputNumber>
         <div class="card p-4 w-50">
             <div class="mb-3">
-                <label for="NameEdit" class="form-label">Server Name</label>
-                <InputText id="NameEdit"
-                           class="form-control"
-                           @bind-Value="edit.Name" />
-                <ValidationMessage For="@(() => edit.Name)" />
+                <label class="form-label">Server Name</label>
+                <InputText class="form-control" @bind-Value="server.Name" />
             </div>
-
             <div class="mb-3">
-                <label for="CityEdit" class="form-label">City</label>
-                <InputSelect id="CityEdit"
-                             class="form-control"
-                             @bind-Value="edit.City">
-                    <option value="">-- select --</option>
+                <label class="form-label">City</label>
+                <InputSelect class="form-control" @bind-Value="server.City">
+                    <option value="">-- select a city --</option>
                     @foreach (var c in Cities)
                     {
                         <option value="@c">@c</option>
                     }
                 </InputSelect>
-                <ValidationMessage For="@(() => edit.City)" />
             </div>
-
             <div class="d-flex">
                 <button type="submit" class="btn btn-success me-2">Save</button>
-                <button type="button"
-                        class="btn btn-secondary"
-                        @onclick="Cancel">
+                <button type="button" class="btn btn-secondary" @onclick="Cancel">
                     Cancel
                 </button>
             </div>
@@ -54,42 +45,37 @@ else
 }
 
 @code {
-    [Parameter] public int Index { get; set; }
+    [Parameter] 
+    public int Id { get; set; }
 
     [Parameter, SupplyParameterFromQuery(Name = "search")]
     public string? Search { get; set; }
 
-    private Server? original;
-    private Server edit = new();
+    [SupplyParameterFromForm()]
+    private Server? server { get; set; }
 
-    private static readonly List<string> Cities =
-      new() { "Toronto", "Montreal", "Ottawa", "Calgary", "Halifax" };
+    private static readonly List<string> Cities = new()
+      { "Toronto", "Montreal", "Ottawa", "Calgary", "Halifax" };
 
-    protected override void OnInitialized()
+    protected override void OnParametersSet()
     {
-        if (Index >= 0 && Index < ServerStore.Servers.Count)
-        {
-            original = ServerStore.Servers[Index];
-            edit = new Server
-            {
-                Name = original.Name,
-                City = original.City,
-                IsOnline = original.IsOnline,
-                PeopleOnline = original.PeopleOnline
-            };
-        }
+        server ??= ServerStore.Servers[Id];
     }
 
-    private void HandleValidSubmit()
+    private async Task Save()
     {
-        if (original is not null)
+
+        if(server is not null)
         {
-            original.Name = edit.Name;
-            original.City = edit.City;
+            ServerStore.Update(server);
         }
-        Nav.NavigateTo($"/manage?search={Uri.EscapeDataString(Search ?? "")}");
+
+        await Task.Yield();
+        Navigation.NavigateTo("/servers");
     }
 
-    private void Cancel() =>
-      Nav.NavigateTo($"/manage?search={Uri.EscapeDataString(Search ?? "")}");
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/servers");
+    }
 }
