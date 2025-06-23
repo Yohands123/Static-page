@@ -1,0 +1,109 @@
+﻿@page "/server"
+@page "/server/{Id:int}"
+
+@using System.Linq
+@using BlazorSSRApp.Data
+@using BlazorSSRApp.Models
+@using Microsoft.AspNetCore.Components.Forms
+@inject NavigationManager Navigation
+
+<h3>@(IsEdit ? "Edit Server" : "Add New Server")</h3>
+
+<EditForm Model="server"
+          OnValidSubmit="Save"
+          FormName="AddEditServerForm">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <InputNumber @bind-Value="server.Id" hidden />
+
+    <div class="card p-4 w-50">
+        <div class="mb-3">
+            <label class="form-label">Server Name</label>
+            <InputText class="form-control" @bind-Value="server.Name" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">City</label>
+            <InputSelect class="form-control" @bind-Value="server.City">
+                <option value="">-- select a city --</option>
+                @foreach (var city in Cities)
+                {
+                    <option value="@city">@city</option>
+                }
+            </InputSelect>
+        </div>
+        <div class="d-flex">
+            <button type="submit" class="btn btn-success me-2">
+                @(IsEdit ? "Save" : "Add Server")
+            </button>
+            <a href="/servers" class="btn btn-secondary">Cancel</a>
+        </div>
+    </div>
+</EditForm>
+
+@code {
+    [Parameter] public int? Id { get; set; }
+
+    private bool IsEdit => Id.HasValue;
+
+    [SupplyParameterFromForm]
+    private Server? server { get; set; }
+
+    private static readonly List<string> Cities = new()
+        { "Toronto", "Montreal", "Ottawa", "Calgary", "Halifax" };
+
+    protected override void OnInitialized()
+    {
+        if (server is not null) return; // 👈 prevent reinitializing after validation fails
+
+        if (IsEdit)
+        {
+            var existing = ServerStore.Servers.FirstOrDefault(s => s.Id == Id.Value);
+            if (existing is not null)
+            {
+                server = new Server
+                {
+                    Id = existing.Id,
+                    Name = existing.Name,
+                    City = existing.City,
+                    IsOnline = existing.IsOnline,
+                    PeopleOnline = existing.PeopleOnline
+                };
+            }
+            else
+            {
+                Navigation.NavigateTo("/servers");
+            }
+        }
+        else
+        {
+            server = new Server
+            {
+                IsOnline = false,
+                PeopleOnline = 0
+            };
+        }
+    }
+
+    private async Task Save()
+    {
+        if (server is null)
+            return;
+
+        if (IsEdit)
+        {
+            var index = ServerStore.Servers.FindIndex(s => s.Id == server.Id);
+            if (index != -1)
+                ServerStore.Servers[index] = server;
+        }
+        else
+        {
+            var nextId = ServerStore.Servers.Any() ? ServerStore.Servers.Max(s => s.Id) + 1 : 1;
+            server.Id = nextId;
+            ServerStore.Servers.Add(server);
+        }
+
+        await Task.Yield();
+        Navigation.NavigateTo("/servers");
+    }
+}
